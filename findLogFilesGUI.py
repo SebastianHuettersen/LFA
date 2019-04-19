@@ -331,6 +331,10 @@ class LogForensicsForAutopsyFileIngestModuleWithUI(FileIngestModule):
         # RegEx pattern to identify WSU files
         self.wsu_patt = re.compile(
             r'.*s-1-5-21-\d+-\d+\-\d+\-\d+_startupinfo\d\.xml')
+        
+        # RegEx pattern to identify Log files
+        self.log_patt = re.compile(
+            r'((?:.*\.|sys)log(?:\.\d+){0,1}$|mainlog(?:\.\d+){0,1}$)')
 
         self.software_hive_location = "Windows/System32/config/SOFTWARE"
         # Create directories for files
@@ -414,7 +418,7 @@ class LogForensicsForAutopsyFileIngestModuleWithUI(FileIngestModule):
             (file_name.endswith(".wer") and self.checkWER) or
             (file_name.endswith(".dmp") and self.checkDmp) or
             (file_name.endswith(".evtx") and self.checkEVTx) or
-            (file_name.endswith(".log") and self.checkLog) or
+            (self.log_patt.match(file_name) is not None and self.checkLog) or
             (self.wsu_patt.match(file_name) is not None and self.checkWSU)):
 
             # Get all file artifacts
@@ -426,7 +430,7 @@ class LogForensicsForAutopsyFileIngestModuleWithUI(FileIngestModule):
                 generic_art = self.art_wer_file
                 artifact_list = skCase.getBlackboardArtifacts(
                     self.art_wer_file.getTypeID())
-            elif file_name.endswith(".log"):
+            elif self.log_patt.match(file_name):
                 generic_art = self.art_log_file
                 artifact_list = skCase.getBlackboardArtifacts(
                     self.art_log_file.getTypeID())
@@ -590,8 +594,8 @@ class LogForensicsForAutopsyFileIngestModuleWithUI(FileIngestModule):
             #                __/ |                          #
             #               |___/                           #
             #################################################
-
-            if file_name.endswith(".log"):
+            # Match if file_name ends with.log or log.\d+
+            if self.log_patt.match(file_name) is not None and "-slack" not in file_name:
                 # Save the file locally in the temp folder and use file id as name to reduce collisions
                 self.temp_log_path = os.path.join(
                     self.temp_dir + LOG_FOLDER_PATH, str(file.getId()))
